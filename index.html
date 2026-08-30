@@ -368,9 +368,13 @@ async function klipyFetch(kind, mode, query){
   let url = "https://api.klipy.com/api/v1/" + KLIPY_API_KEY + "/" + kind + "/" + mode + "/" + cid + "?per_page=24";
   if(mode === "search") url += "&q=" + encodeURIComponent(query);
   const res = await fetch(url);
-  if(!res.ok) throw new Error("klipy http " + res.status);
-  const json = await res.json();
-  return (json && json.data && json.data.data) ? json.data.data : [];
+  const raw = await res.text();
+  if(!res.ok){ const e = new Error("http"); e.debug = "URL: " + url + " | HTTP " + res.status + " — " + raw.slice(0,250); throw e; }
+  let json;
+  try{ json = JSON.parse(raw); }catch(parseErr){ const e = new Error("json"); e.debug = "Resposta não-JSON: " + raw.slice(0,250); throw e; }
+  const items = (json && json.data && json.data.data) ? json.data.data : [];
+  if(!items.length){ const e = new Error("empty"); e.debug = "0 itens. JSON: " + raw.slice(0,350); throw e; }
+  return items;
 }
 function extractMediaUrl(item){
   if(!item) return null;
@@ -682,14 +686,13 @@ async function loadMedia(mode, query){
   grid.innerHTML = "<div class=\"media-status\">A carregar...</div>";
   try{
     const items = await klipyFetch(mediaPickerKind, mode, query);
-    if(!items.length){ grid.innerHTML = "<div class=\"media-status\">Sem resultados.</div>"; return; }
     grid.innerHTML = items.map(function(it){
       const url = extractMediaUrl(it);
       if(!url) return "";
       return "<button class=\"media-thumb\" onclick=\"sendMedia('" + url.replace(/'/g,"\\'") + "')\"><img src=\"" + url + "\" loading=\"lazy\"></button>";
     }).join("");
   }catch(err){
-    grid.innerHTML = "<div class=\"media-status\">Não consegui ligar à Klipy. Confirma a chave de API.</div>";
+    grid.innerHTML = "<div class=\"media-status\" style=\"font-size:.66rem;word-break:break-all;text-align:left;line-height:1.4;\">DEBUG: " + escapeHtml(err.debug || err.message) + "</div>";
   }
 }
 function onMediaSearchInput(){
