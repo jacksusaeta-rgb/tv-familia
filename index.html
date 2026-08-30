@@ -363,15 +363,16 @@ function svgIcon(pathHtml, sizeClass){ return '<svg class="' + sizeClass + '" vi
    os formatos mais prováveis. */
 const KLIPY_API_KEY = "gYiVrr3lnmid8Bvi948JafyXPXevqwFYDOr1luns5kBPxDguiu16md10ueo2g3i7";
 function klipyCustomerId(){ return (STATE.session && STATE.session.username) ? STATE.session.username : "convidado"; }
+function klipyKindPath(kind){ return kind === "stickers" ? "sticker" : kind; }
 async function klipyFetch(kind, mode, query){
   const cid = encodeURIComponent(klipyCustomerId());
-  let url = "https://api.klipy.com/api/v1/" + KLIPY_API_KEY + "/" + kind + "/" + mode + "/" + cid + "?per_page=24";
+  let url = "https://api.klipy.com/api/v1/" + KLIPY_API_KEY + "/" + klipyKindPath(kind) + "/" + mode + "/" + cid + "?per_page=24";
   if(mode === "search") url += "&q=" + encodeURIComponent(query);
   const res = await fetch(url);
   const raw = await res.text();
   if(!res.ok){ const e = new Error("http"); e.debug = "URL: " + url + " | HTTP " + res.status + " — " + raw.slice(0,250); throw e; }
   let json;
-  try{ json = JSON.parse(raw); }catch(parseErr){ const e = new Error("json"); e.debug = "Resposta não-JSON: " + raw.slice(0,250); throw e; }
+  try{ json = JSON.parse(raw); }catch(parseErr){ const e = new Error("json"); e.debug = "URL: " + url + " | Resposta não-JSON, tamanho=" + raw.length + ": " + raw.slice(0,250); throw e; }
   const items = (json && json.data && json.data.data) ? json.data.data : [];
   if(!items.length){ const e = new Error("empty"); e.debug = "0 itens. JSON: " + raw.slice(0,350); throw e; }
   return items;
