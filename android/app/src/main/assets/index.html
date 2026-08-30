@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#08090c" />
+<title>TV Família</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --void:#08090c; --panel:#121319; --panel-2:#181a22; --line:#23252e;
+  --chrome-1:#eef0f5; --chrome-2:#9497a6;
+  --tally:#ff3b3b; --signal:#c9cbd6; --signal-glow:rgba(201,203,214,.35);
+  --danger:#ff5470; --radius:16px; --radius-sm:11px; font-size:16px;
+}
+.theme-europa{ --signal:#4f8dff; --signal-glow:rgba(79,141,255,.38); }
+.theme-americas{ --signal:#ff9a4a; --signal-glow:rgba(255,154,74,.38); }
+.theme-africa{ --signal:#e3ac4c; --signal-glow:rgba(227,172,76,.38); }
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ height:100%; }
+body{ margin:0; background:radial-gradient(1000px 500px at 50% -10%, rgba(255,255,255,.05), transparent 60%), var(--void);
+  color:var(--chrome-1); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden; -webkit-font-smoothing:antialiased; }
+body::before{ content:""; position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode:overlay; }
+.hidden{ display:none !important; }
+.screen{ position:fixed; inset:0; z-index:2; background:var(--void); }
+button,input,select,textarea{ font-family:inherit; }
+button{ cursor:pointer; }
+input,select,textarea{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-sm);
+  color:var(--chrome-1); padding:11px 13px; width:100%; margin:6px 0; font-size:.92rem; }
+textarea{ min-height:90px; resize:vertical; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
+.dim{ color:var(--chrome-2); font-size:.85rem; }
+.error{ color:var(--danger); font-size:.8rem; min-height:1.1em; margin-top:2px; }
+.divider{ border:none; border-top:1px solid var(--line); margin:22px 0; }
+.field-label{ display:block; font-size:.75rem; color:var(--chrome-2); margin-top:10px; }
+h2{ font-family:"Orbitron",sans-serif; font-weight:700; letter-spacing:.4px; font-size:1.15rem; margin:4px 0 6px; }
+h3{ font-size:.85rem; text-transform:uppercase; letter-spacing:1px; color:var(--chrome-2); margin:22px 0 8px; }
+
+/* icon system */
+.ic,.ic-sm,.ic-lg,.ic-xl{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; display:block; }
+.ic{ width:19px; height:19px; }
+.ic-sm{ width:16px; height:16px; }
+.ic-lg{ width:24px; height:24px; }
+.ic-xl{ width:36px; height:36px; }
+
+/* onboarding */
+.onboard-card{ max-width:420px; margin:16vh auto 0; padding:32px 26px; text-align:center; position:relative; z-index:2; }
+.logo{ font-family:"Orbitron",sans-serif; font-size:2rem; font-weight:800; letter-spacing:1px;
+  background:linear-gradient(135deg,var(--chrome-1),var(--signal)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.logo span{ display:block; font-size:.85rem; font-weight:600; color:var(--chrome-2); letter-spacing:5px; text-transform:uppercase; margin-top:2px; -webkit-text-fill-color:var(--chrome-2); }
+.sub{ color:var(--chrome-2); margin:10px 0 28px; font-size:.85rem; }
+.lang-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.continent-grid{ display:grid; gap:12px; margin-top:18px; }
+.lang-btn,.continent-btn{ background:var(--panel); border:1px solid var(--line); color:var(--chrome-1); padding:16px; border-radius:var(--radius); font-size:.95rem; }
+.lang-btn:active,.continent-btn:active{ border-color:var(--signal); }
+.continent-btn.suggested{ border-color:var(--signal); box-shadow:0 0 0 2px var(--signal-glow); }
+.continent-hint{ font-size:.72rem; color:var(--chrome-2); margin-top:12px; min-height:1.2em; }
+
+/* shell */
+.topbar{ padding:14px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); position:relative; z-index:3; }
+.logo-sm{ font-family:"Orbitron",sans-serif; font-weight:700; letter-spacing:.5px; font-size:1rem; }
+.logo-sm span{ color:var(--signal); }
+.icon-btn{ background:none; border:1px solid var(--line); border-radius:50%; width:36px; height:36px; color:var(--chrome-2); display:flex; align-items:center; justify-content:center; }
+.icon-btn:active{ border-color:var(--signal); color:var(--signal); }
+
+.tv-pane{ position:absolute; top:57px; bottom:calc(64px + env(safe-area-inset-bottom,0px)); left:0; right:0; z-index:2; display:flex; flex-direction:column; }
+.tv-pane.hidden{ display:none; }
+.tv-top{ flex-shrink:0; padding:16px 16px 0; }
+#views{ position:absolute; top:57px; bottom:calc(64px + env(safe-area-inset-bottom,0px)); left:0; right:0; overflow-y:auto; padding:18px; z-index:2; }
+#views.hidden{ display:none; }
+.view{ display:none; }
+.view.active{ display:block; animation:fadein .25s ease; }
+@keyframes fadein{ from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:none;} }
+
+.tabbar{ position:fixed; bottom:0; left:0; right:0; height:calc(64px + env(safe-area-inset-bottom,0px)); padding-bottom:env(safe-area-inset-bottom,0px);
+  display:flex; background:var(--panel-2); border-top:1px solid var(--line); z-index:3; }
+.tabbar button{ flex:1; background:none; border:none; color:var(--chrome-2); display:flex; flex-direction:column; gap:4px; align-items:center; justify-content:center; font-size:.62rem; }
+.tabbar button span{ font-weight:600; letter-spacing:.2px; }
+.tabbar button.active{ color:var(--signal); }
+
+/* TV */
+.tv-status{ display:flex; align-items:center; gap:8px; margin-bottom:4px; color:var(--chrome-1); font-size:.85rem; font-weight:600; }
+.dot{ width:8px; height:8px; border-radius:50%; background:var(--tally); box-shadow:0 0 10px rgba(255,59,59,.7); animation:pulse 1.6s infinite; }
+@media (prefers-reduced-motion: reduce){ .dot{ animation:none; } }
+@keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+#nowPlayingTitle{ margin-bottom:12px; }
+.player-wrap{ background:#000; border-radius:var(--radius); overflow:hidden; aspect-ratio:16/9; border:1px solid var(--line); }
+#ytPlayer{ width:100%; height:100%; }
+.quality-row{ display:flex; gap:8px; align-items:center; margin:12px 0 6px; flex-wrap:wrap; font-size:.8rem; color:var(--chrome-2); }
+.qbtn{ background:var(--panel); border:1px solid var(--line); color:var(--chrome-1); padding:7px 14px; border-radius:999px; font-size:.78rem; }
+.qbtn.active{ border-color:var(--signal); color:var(--signal); }
+.empty-state{ padding:44px 10px; text-align:center; color:var(--chrome-2); }
+
+/* schedule / lists */
+.sched-item{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; margin:8px 0; position:relative; }
+.sched-item b{ display:block; font-size:.9rem; margin-bottom:2px; }
+.sched-item .del{ position:absolute; top:10px; right:10px; background:none; border:none; color:var(--danger); display:flex; }
+.mw-item{ padding:8px 0; border-bottom:1px solid var(--line); font-size:.85rem; display:flex; justify-content:space-between; }
+
+/* live chat panel (inside TV tab) */
+.chat-list{ flex:1; overflow-y:auto; padding:10px 16px; display:flex; flex-direction:column; gap:9px; }
+.msg{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-sm); padding:9px 13px; max-width:82%; align-self:flex-start; color:var(--chrome-1); }
+.msg b{ display:block; font-size:.68rem; color:var(--signal); margin-bottom:3px; font-weight:600; cursor:pointer; }
+.msg p{ margin:0; font-size:.9rem; word-break:break-word; }
+.msg audio{ width:100%; margin-top:2px; }
+.media-msg{ max-width:170px; border-radius:var(--radius-sm); display:block; margin-top:2px; }
+.chat-input-row{ flex-shrink:0; display:flex; gap:6px; padding:10px 12px; background:var(--panel-2); border-top:1px solid var(--line); }
+.chat-input-row input{ flex:1; margin:0; border-radius:999px; }
+.chat-input-row button{ background:var(--panel); border:1px solid var(--line); color:var(--chrome-1); border-radius:50%; width:42px; height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+#micBtn.recording{ background:var(--danger); border-color:var(--danger); color:#fff; box-shadow:0 0 16px rgba(255,84,112,.55); }
+#stickerBtn{ color:var(--signal); border-radius:10px; width:auto; padding:0 10px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:.7rem; letter-spacing:.5px; }
+.media-picker{ flex-shrink:0; background:var(--panel); border-top:1px solid var(--line); padding:10px 12px; max-height:230px; display:flex; flex-direction:column; gap:8px; }
+.media-picker input{ margin:0; border-radius:999px; }
+.media-results{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; overflow-y:auto; }
+.media-thumb{ background:var(--void); border:1px solid var(--line); border-radius:var(--radius-sm); padding:0; overflow:hidden; aspect-ratio:1; }
+.media-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.media-status{ grid-column:1/-1; text-align:center; padding:16px; color:var(--chrome-2); font-size:.82rem; }
+
+/* profile */
+.profile-card{ display:flex; gap:14px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin:14px 0; }
+.avatar{ width:46px; height:46px; border-radius:50%; background:var(--void); display:flex; align-items:center; justify-content:center; border:1px solid var(--line); flex-shrink:0; color:var(--signal); }
+
+/* buttons */
+.primary-btn{ background:linear-gradient(135deg,var(--signal),var(--chrome-1)); color:#08090c; border:none; padding:13px 20px; border-radius:999px; font-weight:700; width:100%; font-size:.92rem; margin-top:8px; }
+.primary-btn:active{ filter:brightness(.95); }
+.ghost-btn{ background:none; border:1px solid var(--line); color:var(--chrome-1); padding:11px 18px; border-radius:999px; width:100%; margin-top:8px; font-size:.88rem; }
+.ghost-btn:active{ border-color:var(--signal); color:var(--signal); }
+
+/* modals */
+.modal{ position:fixed; inset:0; background:rgba(0,0,0,.68); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; z-index:50; padding:22px; }
+.modal-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius); padding:26px; max-width:360px; width:100%; position:relative; text-align:center; }
+.modal-card.glow{ box-shadow:0 0 60px var(--signal-glow); border-color:var(--signal); }
+.modal-close{ position:absolute; top:10px; right:12px; background:none; border:none; color:var(--chrome-2); padding:6px; display:flex; }
+.donation-icon{ color:var(--signal); filter:drop-shadow(0 0 12px var(--signal-glow)); margin-bottom:6px; }
+.modal-card p{ font-size:.88rem; color:var(--chrome-2); line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div id="onboarding" class="screen">
+  <div class="onboard-card">
+    <h1 class="logo">TV<span>Família</span></h1>
+    <p class="sub" id="obSub">Escolhe o idioma · Choose language · Choisissez la langue · Elige el idioma</p>
+    <div class="lang-grid" id="langGrid">
+      <button class="lang-btn" data-lang="pt">Português</button>
+      <button class="lang-btn" data-lang="en">English</button>
+      <button class="lang-btn" data-lang="fr">Français</button>
+      <button class="lang-btn" data-lang="es">Español</button>
+    </div>
+    <div class="continent-grid hidden" id="continentGrid">
+      <button class="continent-btn" data-continent="europa" data-i18n="continent.europa"></button>
+      <button class="continent-btn" data-continent="americas" data-i18n="continent.americas"></button>
+      <button class="continent-btn" data-continent="africa" data-i18n="continent.africa"></button>
+      <p class="continent-hint" id="continentHint"></p>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="screen hidden">
+  <header class="topbar">
+    <span class="logo-sm">TV<span>FAMÍLIA</span></span>
+    <button class="icon-btn" id="adminIconBtn" title="Admin">
+      <svg class="ic-sm" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    </button>
+  </header>
+
+  <main id="tvPane" class="tv-pane">
+    <div class="tv-top">
+      <div class="tv-status"><span class="dot"></span><span data-i18n="tv.onAir"></span></div>
+      <div id="nowPlayingTitle" class="dim"></div>
+      <div class="player-wrap"><div id="ytPlayer"></div></div>
+      <div class="quality-row">
+        <span data-i18n="tv.quality"></span>
+        <button class="qbtn" data-q="large">480p</button>
+        <button class="qbtn" data-q="hd720">720p</button>
+        <button class="qbtn" data-q="hd1080">1080p</button>
+      </div>
+    </div>
+
+    <div id="chatList" class="chat-list"></div>
+    <div id="mediaPicker" class="media-picker hidden">
+      <input id="mediaSearchInput" type="text" placeholder="Pesquisar na Klipy...">
+      <div id="mediaResults" class="media-results"></div>
+    </div>
+    <div class="chat-input-row">
+      <button id="stickerBtn" title="Stickers (Klipy)">CV</button>
+      <button id="gifBtn" style="border-radius:999px;width:auto;padding:0 12px;font-size:.72rem;font-weight:700;letter-spacing:.5px;">GIF</button>
+      <input id="chatInput" type="text" data-i18n-placeholder="chat.placeholder">
+      <button id="micBtn">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg>
+      </button>
+      <button id="sendBtn">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 20l16-8L4 4v6l10 2-10 2z"/></svg>
+      </button>
+    </div>
+  </main>
+
+  <main id="views">
+    <section id="view-programacao" class="view">
+      <h2 data-i18n="schedule.title"></h2>
+      <div id="upcomingList"></div>
+    </section>
+
+    <section id="view-sugestoes" class="view">
+      <h2 data-i18n="suggestions.title"></h2>
+      <p class="dim" data-i18n="suggestions.body"></p>
+      <textarea id="suggestionInput" data-i18n-placeholder="suggestions.placeholder"></textarea>
+      <button id="suggestSendBtn" class="primary-btn" data-i18n="suggestions.send"></button>
+    </section>
+
+    <section id="view-perfil" class="view">
+      <h2 data-i18n="profile.title"></h2>
+      <div id="profileLoggedOut">
+        <p class="dim" data-i18n="profile.loginPrompt"></p>
+        <button id="openLoginBtn" class="primary-btn" data-i18n="auth.enter"></button>
+      </div>
+      <div id="profileLoggedIn" class="hidden">
+        <div class="profile-card">
+          <div class="avatar"><svg class="ic-lg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg></div>
+          <div>
+            <div class="dim" data-i18n="auth.loggedInAs"></div>
+            <div id="profileNick">-</div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="ghost-btn" data-i18n="auth.logout"></button>
+      </div>
+      <hr class="divider">
+      <button id="changeLangBtn" class="ghost-btn" data-i18n="profile.changeLanguage"></button>
+    </section>
+
+    <section id="view-admin" class="view">
+      <div id="adminGate">
+        <h2 data-i18n="admin.gateTitle"></h2>
+        <p class="dim" data-i18n="admin.gateWarning"></p>
+        <input id="adminCodeInput" type="password" data-i18n-placeholder="admin.passwordPlaceholder">
+        <button id="adminEnterBtn" class="primary-btn" data-i18n="admin.enter"></button>
+        <p id="adminCodeError" class="error"></p>
+      </div>
+      <div id="adminPanel" class="hidden">
+        <h3 data-i18n="admin.addVideo"></h3>
+        <input id="admVideoId" data-i18n-placeholder="admin.videoId">
+        <input id="admVideoTitle" data-i18n-placeholder="admin.videoTitle">
+        <select id="admVideoLang">
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+        <label class="field-label" data-i18n="admin.startTime"></label>
+        <input id="admVideoStart" type="datetime-local">
+        <label class="field-label" data-i18n="admin.durationLabel"></label>
+        <input id="admVideoDuration" type="number" placeholder="60">
+        <button id="admSaveBtn" class="primary-btn" data-i18n="admin.save"></button>
+
+        <h3 data-i18n="admin.scheduled"></h3>
+        <div id="scheduleList"></div>
+
+        <div id="masterOnlySections">
+          <h3 data-i18n="admin.mostWatched"></h3>
+          <div id="mostWatchedList"></div>
+          <h3 data-i18n="admin.operatorCodes"></h3>
+          <button id="genCodeBtn" class="ghost-btn" data-i18n="admin.generateCode"></button>
+          <div id="operatorCodesList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-view="tv">
+      <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+      <span data-i18n="nav.tv"></span>
+    </button>
+    <button data-view="programacao">
+      <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></svg>
+      <span data-i18n="nav.programacao"></span>
+    </button>
+    <button data-view="sugestoes">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11.2c.6.4 1 1.1 1 1.8h4c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/></svg>
+      <span data-i18n="nav.sugestoes"></span>
+    </button>
+    <button data-view="perfil">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+      <span data-i18n="nav.perfil"></span>
+    </button>
+  </nav>
+</div>
+
+<div id="donationModal" class="modal hidden">
+  <div class="modal-card glow">
+    <button class="modal-close" id="donationClose"><svg class="ic-sm" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <svg class="donation-icon" viewBox="0 0 64 64" width="52" height="52" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 40 L32 56" /><path d="M23 56 L41 56" />
+      <path d="M32 40 L24 21 L40 21 Z" />
+      <path d="M17 27 a19 19 0 0 1 0 -13" /><path d="M47 27 a19 19 0 0 0 0 -13" />
+      <path d="M10 32 a27 27 0 0 1 0 -23" opacity=".5" /><path d="M54 32 a27 27 0 0 0 0 -23" opacity=".5" />
+    </svg>
+    <h2 data-i18n="donation.title"></h2>
+    <p data-i18n="donation.body"></p>
+    <button id="donationCta" class="primary-btn" data-i18n="donation.cta"></button>
+    <button id="donationDismiss" class="ghost-btn" data-i18n="donation.dismiss"></button>
+  </div>
+</div>
+
+<div id="loginModal" class="modal hidden">
+  <div class="modal-card">
+    <button class="modal-close" id="loginClose"><svg class="ic-sm" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 data-i18n="auth.accountTitle"></h2>
+    <input id="loginUsername" type="text" data-i18n-placeholder="auth.usernameLabel" autocomplete="off">
+    <input id="loginPassword" type="password" data-i18n-placeholder="auth.passwordLabel">
+    <div style="display:flex;gap:8px;">
+      <button id="loginBtnLogin" class="ghost-btn" data-i18n="auth.enter" style="margin-top:8px;"></button>
+      <button id="loginBtnRegister" class="primary-btn" data-i18n="auth.createAccount" style="margin-top:8px;"></button>
+    </div>
+    <p id="loginError" class="error"></p>
+  </div>
+</div>
+
+<div id="micLockModal" class="modal hidden">
+  <div class="modal-card">
+    <button class="modal-close" id="micLockClose"><svg class="ic-sm" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 data-i18n="chat.micLockTitle"></h2>
+    <p data-i18n="chat.micLockBody"></p>
+    <button id="micWaBtn" class="primary-btn" data-i18n="chat.micLockWa"></button>
+    <input id="micCodeInput" type="text" data-i18n-placeholder="chat.micLockPlaceholder">
+    <button id="micUnlockBtn" class="ghost-btn" data-i18n="chat.micLockCta"></button>
+    <p id="micCodeError" class="error"></p>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   TV FAMÍLIA — v3: ligado a Supabase de verdade (login, chat em tempo real,
+   programação partilhada, códigos de operador). Continua a faltar:
+   - Áudio do chat: o URL gravado é local ao aparelho (blob) — só quem grava
+     o ouve por agora; para tocar nos outros aparelhos precisa de subir o
+     ficheiro ao Supabase Storage (ainda por fazer).
+   - Klipy: ver aviso junto da chave, mais abaixo.
+========================================================================== */
+
+const WHATSAPP_NUMBER = "244934748111";
+const ADMIN_MASTER_CODE = "Cv280513//////";
+const MIC_CODE = "CR7777777";
+
+const SUPABASE_URL = "https://ehidytajbsksljvhyfls.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_lwMpK6MypfoUjGyyU13aEw_hGBmfs0m";
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const ICO_TRASH = '<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>';
+function svgIcon(pathHtml, sizeClass){ return '<svg class="' + sizeClass + '" viewBox="0 0 24 24">' + pathHtml + '</svg>'; }
+
+/* ---------- Klipy (GIFs + Stickers) ----------
+   Aviso: a documentação interativa da Klipy não carregou por texto para eu
+   confirmar 100% os nomes dos campos de resposta — extractMediaUrl() tenta
+   os formatos mais prováveis. */
+const KLIPY_API_KEY = "gYiVrr3lnmid8Bvi948JafyXPXevqwFYDOr1luns5kBPxDguiu16md10ueo2g3i7";
+function klipyCustomerId(){ return (STATE.session && STATE.session.username) ? STATE.session.username : "convidado"; }
+async function klipyFetch(kind, mode, query){
+  const cid = encodeURIComponent(klipyCustomerId());
+  let url = "https://api.klipy.com/api/v1/" + KLIPY_API_KEY + "/" + kind + "/" + mode + "/" + cid + "?per_page=24";
+  if(mode === "search") url += "&q=" + encodeURIComponent(query);
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("klipy http " + res.status);
+  const json = await res.json();
+  return (json && json.data && json.data.data) ? json.data.data : [];
+}
+function extractMediaUrl(item){
+  if(!item) return null;
+  return (item.file && item.file.md && item.file.md.gif && item.file.md.gif.url)
+      || (item.files && item.files.preview && item.files.preview.url)
+      || (item.media_formats && item.media_formats.gif && item.media_formats.gif.url)
+      || (item.images && item.images.original && item.images.original.url)
+      || item.url || item.src || null;
+}
+
+const I18N = {
+  pt: {
+    onboarding:{ chooseContinent:"Escolhe o estilo visual" },
+    continent:{ europa:"Europa", americas:"Américas", africa:"África" },
+    nav:{ tv:"TV", programacao:"Programação", sugestoes:"Sugestões", perfil:"Perfil" },
+    donation:{ title:"Ajuda a manter a TV Família", body:"Podes ajudar com uma quantia de 3 dólares para melhorar o app. Entra em contacto com o 934748111 no WhatsApp.", cta:"Contactar no WhatsApp", dismiss:"Agora não" },
+    tv:{ onAir:"No ar agora", quality:"Qualidade", noProgram:"Sem transmissão neste momento. Vê a programação para saber quando volta." },
+    schedule:{ title:"Próximas transmissões", empty:"Ainda não há transmissões agendadas.", untitled:"Transmissão" },
+    chat:{ placeholder:"Escreve uma mensagem...", micLockTitle:"Mensagens de voz", micLockBody:"Este é um recurso especial. Contacta o 934748111 no WhatsApp, paga 0,50 dólares e recebe o teu código.", micLockPlaceholder:"Código", micLockCta:"Desbloquear", micLockWa:"Contactar no WhatsApp", wrongCode:"Código incorreto", micDenied:"O acesso ao microfone foi negado." },
+    auth:{ accountTitle:"A tua conta", usernameLabel:"Nome de utilizador", passwordLabel:"Senha", enter:"Entrar", createAccount:"Criar conta", wrongPassword:"Credenciais incorretas", needPassword:"Preenche nome e senha", taken:"Esse nome já foi registado por outra pessoa", logout:"Sair", loggedInAs:"A usar o nome" },
+    suggestions:{ title:"Sugestões", body:"A tua opinião ajuda a melhorar a TV Família.", placeholder:"Escreve a tua sugestão...", send:"Enviar no WhatsApp" },
+    profile:{ title:"Perfil", loginPrompt:"Entra ou cria uma conta para participares no chat.", changeLanguage:"Mudar idioma" },
+    admin:{ gateTitle:"Área do administrador", gateWarning:"Esta área é exclusiva para administrador. É necessária uma senha para entrar. Se quiseres publicar um vídeo, contacta o 934748111 no WhatsApp.", passwordPlaceholder:"Senha", enter:"Entrar", wrong:"Senha incorreta", addVideo:"Adicionar vídeo", videoId:"ID do vídeo (YouTube)", videoTitle:"Título", startTime:"Início", durationLabel:"Duração (minutos)", save:"Guardar", scheduled:"Transmissões agendadas", mostWatched:"Mais assistidas", operatorCodes:"Códigos de operador", generateCode:"Gerar novo código", noCodes:"Ainda não geraste nenhum código." }
+  },
+  en: {
+    onboarding:{ chooseContinent:"Choose a visual style" },
+    continent:{ europa:"Europe", americas:"Americas", africa:"Africa" },
+    nav:{ tv:"TV", programacao:"Schedule", sugestoes:"Suggestions", perfil:"Profile" },
+    donation:{ title:"Help keep TV Família running", body:"You can help with a $3 contribution to improve the app. Contact 934748111 on WhatsApp.", cta:"Contact on WhatsApp", dismiss:"Not now" },
+    tv:{ onAir:"On air now", quality:"Quality", noProgram:"Nothing airing right now. Check the schedule to see what's next." },
+    schedule:{ title:"Upcoming broadcasts", empty:"No broadcasts scheduled yet.", untitled:"Broadcast" },
+    chat:{ placeholder:"Type a message...", micLockTitle:"Voice messages", micLockBody:"This is a special feature. Contact 934748111 on WhatsApp, pay $0.50 and get your code.", micLockPlaceholder:"Code", micLockCta:"Unlock", micLockWa:"Contact on WhatsApp", wrongCode:"Incorrect code", micDenied:"Microphone access was denied." },
+    auth:{ accountTitle:"Your account", usernameLabel:"Username", passwordLabel:"Password", enter:"Log in", createAccount:"Create account", wrongPassword:"Incorrect credentials", needPassword:"Fill in username and password", taken:"That name is already registered by someone else", logout:"Log out", loggedInAs:"Signed in as" },
+    suggestions:{ title:"Suggestions", body:"Your feedback helps improve TV Família.", placeholder:"Write your suggestion...", send:"Send on WhatsApp" },
+    profile:{ title:"Profile", loginPrompt:"Log in or create an account to join the chat.", changeLanguage:"Change language" },
+    admin:{ gateTitle:"Admin area", gateWarning:"This area is for the administrator only. A password is required. To publish a video, contact 934748111 on WhatsApp.", passwordPlaceholder:"Password", enter:"Enter", wrong:"Incorrect password", addVideo:"Add video", videoId:"Video ID (YouTube)", videoTitle:"Title", startTime:"Start", durationLabel:"Duration (minutes)", save:"Save", scheduled:"Scheduled broadcasts", mostWatched:"Most watched", operatorCodes:"Operator codes", generateCode:"Generate new code", noCodes:"You haven't generated any codes yet." }
+  },
+  fr: {
+    onboarding:{ chooseContinent:"Choisissez un style visuel" },
+    continent:{ europa:"Europe", americas:"Amériques", africa:"Afrique" },
+    nav:{ tv:"TV", programacao:"Programme", sugestoes:"Suggestions", perfil:"Profil" },
+    donation:{ title:"Aidez à faire vivre TV Família", body:"Vous pouvez aider avec une contribution de 3 dollars pour améliorer l'application. Contactez le 934748111 sur WhatsApp.", cta:"Contacter sur WhatsApp", dismiss:"Pas maintenant" },
+    tv:{ onAir:"En direct maintenant", quality:"Qualité", noProgram:"Rien à l'antenne pour le moment. Consultez le programme." },
+    schedule:{ title:"Prochaines diffusions", empty:"Aucune diffusion programmée pour le moment.", untitled:"Diffusion" },
+    chat:{ placeholder:"Écrivez un message...", micLockTitle:"Messages vocaux", micLockBody:"C'est une fonctionnalité spéciale. Contactez le 934748111 sur WhatsApp, payez 0,50 dollar et recevez votre code.", micLockPlaceholder:"Code", micLockCta:"Débloquer", micLockWa:"Contacter sur WhatsApp", wrongCode:"Code incorrect", micDenied:"Accès au microphone refusé." },
+    auth:{ accountTitle:"Votre compte", usernameLabel:"Nom d'utilisateur", passwordLabel:"Mot de passe", enter:"Se connecter", createAccount:"Créer un compte", wrongPassword:"Identifiants incorrects", needPassword:"Remplissez le nom et le mot de passe", taken:"Ce nom est déjà pris par quelqu'un d'autre", logout:"Se déconnecter", loggedInAs:"Connecté en tant que" },
+    suggestions:{ title:"Suggestions", body:"Votre avis aide à améliorer TV Família.", placeholder:"Écrivez votre suggestion...", send:"Envoyer sur WhatsApp" },
+    profile:{ title:"Profil", loginPrompt:"Connectez-vous ou créez un compte pour participer au chat.", changeLanguage:"Changer de langue" },
+    admin:{ gateTitle:"Espace administrateur", gateWarning:"Cet espace est réservé à l'administrateur. Un mot de passe est requis. Pour publier une vidéo, contactez le 934748111 sur WhatsApp.", passwordPlaceholder:"Mot de passe", enter:"Entrer", wrong:"Mot de passe incorrect", addVideo:"Ajouter une vidéo", videoId:"ID vidéo (YouTube)", videoTitle:"Titre", startTime:"Début", durationLabel:"Durée (minutes)", save:"Enregistrer", scheduled:"Diffusions programmées", mostWatched:"Les plus regardées", operatorCodes:"Codes opérateur", generateCode:"Générer un code", noCodes:"Vous n'avez pas encore généré de code." }
+  },
+  es: {
+    onboarding:{ chooseContinent:"Elige un estilo visual" },
+    continent:{ europa:"Europa", americas:"Américas", africa:"África" },
+    nav:{ tv:"TV", programacao:"Programación", sugestoes:"Sugerencias", perfil:"Perfil" },
+    donation:{ title:"Ayuda a mantener TV Família", body:"Puedes ayudar con un aporte de 3 dólares para mejorar la app. Contacta al 934748111 por WhatsApp.", cta:"Contactar por WhatsApp", dismiss:"Ahora no" },
+    tv:{ onAir:"En vivo ahora", quality:"Calidad", noProgram:"No hay transmisión en este momento. Consulta la programación." },
+    schedule:{ title:"Próximas transmisiones", empty:"Todavía no hay transmisiones programadas.", untitled:"Transmisión" },
+    chat:{ placeholder:"Escribe un mensaje...", micLockTitle:"Mensajes de voz", micLockBody:"Esta es una función especial. Contacta al 934748111 por WhatsApp, paga 0,50 dólares y recibe tu código.", micLockPlaceholder:"Código", micLockCta:"Desbloquear", micLockWa:"Contactar por WhatsApp", wrongCode:"Código incorrecto", micDenied:"Acceso al micrófono denegado." },
+    auth:{ accountTitle:"Tu cuenta", usernameLabel:"Nombre de usuario", passwordLabel:"Contraseña", enter:"Entrar", createAccount:"Crear cuenta", wrongPassword:"Credenciales incorrectas", needPassword:"Completa nombre y contraseña", taken:"Ese nombre ya fue registrado por otra persona", logout:"Salir", loggedInAs:"Usando el nombre" },
+    suggestions:{ title:"Sugerencias", body:"Tu opinión ayuda a mejorar TV Família.", placeholder:"Escribe tu sugerencia...", send:"Enviar por WhatsApp" },
+    profile:{ title:"Perfil", loginPrompt:"Inicia sesión o crea una cuenta para participar en el chat.", changeLanguage:"Cambiar idioma" },
+    admin:{ gateTitle:"Área del administrador", gateWarning:"Esta área es exclusiva para el administrador. Se requiere una contraseña para entrar. Para publicar un video, contacta al 934748111 por WhatsApp.", passwordPlaceholder:"Contraseña", enter:"Entrar", wrong:"Contraseña incorrecta", addVideo:"Agregar video", videoId:"ID del video (YouTube)", videoTitle:"Título", startTime:"Inicio", durationLabel:"Duración (minutos)", save:"Guardar", scheduled:"Transmisiones programadas", mostWatched:"Más vistas", operatorCodes:"Códigos de operador", generateCode:"Generar nuevo código", noCodes:"Todavía no has generado ningún código." }
+  }
+};
+
+const STATE = {
+  lang: localStorage.getItem("tvf_lang") || null,
+  continent: localStorage.getItem("tvf_continent") || null,
+  session: JSON.parse(localStorage.getItem("tvf_session") || "null"),
+  micUnlocked: localStorage.getItem("tvf_mic_unlocked") === "1",
+  adminMode: sessionStorage.getItem("tvf_admin_mode") || null,
+  adminCode: sessionStorage.getItem("tvf_admin_code") || ""
+};
+let schedule = [];
+let chatMessages = [];
+let operatorCodesCache = [];
+let pendingAuthCb = null;
+let ytPlayer = null;
+let resyncInterval = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let recording = false;
+let chatChannel = null;
+
+function waLink(text){ return "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(text); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" }[c]; });
+}
+function t(path){
+  const dict = I18N[STATE.lang] || I18N.pt;
+  const val = path.split(".").reduce(function(o,k){ return o && o[k] !== undefined ? o[k] : undefined; }, dict);
+  return val !== undefined ? val : path;
+}
+function localeFor(lang){ return { pt:"pt-PT", en:"en-US", fr:"fr-FR", es:"es-ES" }[lang] || "pt-PT"; }
+function applyI18n(){
+  document.documentElement.setAttribute("lang", STATE.lang || "pt");
+  document.querySelectorAll("[data-i18n]").forEach(function(el){ el.textContent = t(el.getAttribute("data-i18n")); });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(function(el){ el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder"))); });
+}
+function applyTheme(){
+  document.body.classList.remove("theme-europa","theme-americas","theme-africa");
+  let cls = null;
+  if(STATE.lang === "fr" || STATE.lang === "es") cls = "theme-europa";
+  else if(STATE.lang === "pt" && STATE.continent) cls = "theme-" + STATE.continent;
+  if(cls) document.body.classList.add(cls);
+}
+
+function selectLanguage(lang){
+  STATE.lang = lang;
+  localStorage.setItem("tvf_lang", lang);
+  if(lang === "pt"){
+    document.getElementById("continentGrid").classList.remove("hidden");
+    document.getElementById("obSub").textContent = I18N.pt.onboarding.chooseContinent;
+    applyTheme();
+    suggestContinentByLocation();
+  } else { finishOnboarding(); }
+}
+function classifyContinent(lat, lng){
+  if(lat >= 35 && lat <= 72 && lng >= -25 && lng <= 45) return "europa";
+  if(lat >= -35 && lat <= 38 && lng >= -18 && lng <= 52) return "africa";
+  if(lng >= -170 && lng <= -30) return "americas";
+  return null;
+}
+function suggestContinentByLocation(){
+  const hint = document.getElementById("continentHint");
+  if(!navigator.geolocation){ return; }
+  hint.textContent = "A detetar localização...";
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      const guess = classifyContinent(pos.coords.latitude, pos.coords.longitude);
+      document.querySelectorAll(".continent-btn").forEach(function(b){ b.classList.remove("suggested"); });
+      if(guess){
+        const btn = document.querySelector('.continent-btn[data-continent="' + guess + '"]');
+        if(btn) btn.classList.add("suggested");
+        hint.textContent = "Sugestão baseada na tua localização — toca para confirmar ou escolher outra.";
+      } else {
+        hint.textContent = "";
+      }
+    },
+    function(){ hint.textContent = ""; },
+    { enableHighAccuracy:false, timeout:6000, maximumAge:600000 }
+  );
+}
+function selectContinent(c){
+  STATE.continent = c;
+  localStorage.setItem("tvf_continent", c);
+  finishOnboarding();
+}
+async function finishOnboarding(){
+  applyTheme();
+  document.getElementById("onboarding").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  applyI18n();
+  renderProfile();
+  await refreshSchedule();
+  loadYouTubeAPI();
+  renderUpcoming();
+  loadRecentMessages();
+  subscribeToChat();
+  showView("tv");
+  setTimeout(showDonationModal, 500);
+}
+function showDonationModal(){ applyI18n(); document.getElementById("donationModal").classList.remove("hidden"); }
+
+function showView(name){
+  document.getElementById("tvPane").classList.toggle("hidden", name !== "tv");
+  document.getElementById("views").classList.toggle("hidden", name === "tv");
+  document.querySelectorAll("#views .view").forEach(function(v){ v.classList.remove("active"); });
+  if(name !== "tv"){ document.getElementById("view-" + name).classList.add("active"); }
+  document.querySelectorAll(".tabbar button").forEach(function(b){ b.classList.toggle("active", b.dataset.view === name); });
+  if(name === "admin"){
+    if(STATE.adminMode){ renderAdminPanel(); }
+    else { document.getElementById("adminGate").classList.remove("hidden"); document.getElementById("adminPanel").classList.add("hidden"); }
+  }
+  if(name === "tv"){ renderChat(); }
+  if(name === "perfil"){ renderProfile(); }
+  if(name === "programacao"){ renderUpcoming(); }
+}
+
+/* ---------- Programação (Supabase) ---------- */
+async function refreshSchedule(){
+  const { data, error } = await sb.from("programacao").select("*").order("start_time", { ascending:true });
+  if(!error && data){
+    schedule = data.map(function(p){
+      return { id:p.id, lang:p.lang, videoId:p.video_id, title:p.title, start:new Date(p.start_time).getTime(), duration:p.duration_seconds, views:p.views };
+    });
+  }
+}
+function getCurrentProgram(){
+  const now = Date.now();
+  let current = null;
+  schedule.filter(function(p){ return p.lang === STATE.lang; }).forEach(function(p){
+    if(p.start <= now && now < p.start + p.duration*1000) current = p;
+  });
+  return current;
+}
+function loadYouTubeAPI(){
+  if(window.YT && window.YT.Player){ initPlayerForCurrentProgram(); return; }
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
+}
+window.onYouTubeIframeAPIReady = function(){ initPlayerForCurrentProgram(); };
+function initPlayerForCurrentProgram(){
+  const program = getCurrentProgram();
+  const container = document.getElementById("ytPlayer");
+  const titleEl = document.getElementById("nowPlayingTitle");
+  if(!program){
+    container.parentElement.innerHTML = "<div class=\"empty-state\">" + t("tv.noProgram") + "</div>";
+    if(titleEl) titleEl.textContent = "";
+    return;
+  }
+  titleEl.textContent = program.title || "";
+  ytPlayer = new YT.Player("ytPlayer", {
+    videoId: program.videoId,
+    playerVars: { rel:0, modestbranding:1, playsinline:1, controls:1 },
+    events: { onReady: function(){ onPlayerReady(program); } }
+  });
+}
+function onPlayerReady(program){
+  const expected = Math.max(0, Math.floor((Date.now() - program.start)/1000));
+  ytPlayer.seekTo(expected, true);
+  ytPlayer.playVideo();
+  sb.rpc("increment_program_views", { p_id: program.id });
+  clearInterval(resyncInterval);
+  resyncInterval = setInterval(function(){
+    if(!ytPlayer || typeof ytPlayer.getCurrentTime !== "function") return;
+    const exp = Math.floor((Date.now() - program.start)/1000);
+    const actual = ytPlayer.getCurrentTime();
+    if(Math.abs(exp - actual) > 4) ytPlayer.seekTo(exp, true);
+  }, 10000);
+}
+function setQuality(level){
+  document.querySelectorAll(".qbtn").forEach(function(b){ b.classList.toggle("active", b.dataset.q === level); });
+  if(ytPlayer && typeof ytPlayer.setPlaybackQuality === "function"){ ytPlayer.setPlaybackQuality(level); }
+}
+function renderUpcoming(){
+  const now = Date.now();
+  const list = schedule.filter(function(p){ return p.lang === STATE.lang && (p.start + p.duration*1000) > now; }).sort(function(a,b){ return a.start - b.start; });
+  document.getElementById("upcomingList").innerHTML = list.length ? list.map(function(p){
+    return "<div class=\"sched-item\"><b>" + escapeHtml(p.title || t("schedule.untitled")) + "</b><div class=\"dim\">" + new Date(p.start).toLocaleString(localeFor(STATE.lang)) + "</div></div>";
+  }).join("") : "<div class=\"empty-state\">" + t("schedule.empty") + "</div>";
+}
+
+/* ---------- Chat (Supabase + Realtime) ---------- */
+function mapDbMessage(m){
+  return { id:m.id, programId:m.program_id, username:m.username, type:m.type, text:m.texto, mediaUrl:m.media_url, mediaKind:m.media_kind, ts:new Date(m.created_at).getTime() };
+}
+async function loadRecentMessages(){
+  const { data, error } = await sb.from("mensagens").select("*").order("created_at", { ascending:true }).limit(200);
+  if(!error && data){ chatMessages = data.map(mapDbMessage); renderChat(); }
+}
+function subscribeToChat(){
+  if(chatChannel) return;
+  chatChannel = sb.channel("mensagens-live")
+    .on("postgres_changes", { event:"INSERT", schema:"public", table:"mensagens" }, function(payload){
+      chatMessages.push(mapDbMessage(payload.new));
+      renderChat();
+    })
+    .on("postgres_changes", { event:"DELETE", schema:"public", table:"mensagens" }, function(payload){
+      chatMessages = chatMessages.filter(function(m){ return m.id !== payload.old.id; });
+      renderChat();
+    })
+    .subscribe();
+}
+function renderMessageText(text){
+  // Destaca nomes mencionados (@username) com a cor do tema
+  return text.replace(/@(\w+)/g, '<span style="color:var(--signal);font-weight:600;">@$1</span>');
+}
+function renderChat(){
+  const list = document.getElementById("chatList");
+  list.innerHTML = chatMessages.map(function(m){
+    const uname = escapeHtml(m.username).replace(/'/g,"\\'");
+    const nameHtml = "<b onclick=\"mentionUser('" + uname + "')\">" + escapeHtml(m.username) + "</b>";
+    if(m.type === "audio") return "<div class=\"msg\">" + nameHtml + "<audio controls src=\"" + m.mediaUrl + "\"></audio></div>";
+    if(m.type === "media") return "<div class=\"msg\">" + nameHtml + "<img class=\"media-msg\" src=\"" + m.mediaUrl + "\" loading=\"lazy\"></div>";
+    return "<div class=\"msg\">" + nameHtml + "<p>" + renderMessageText(escapeHtml(m.text)) + "</p></div>";
+  }).join("");
+  list.scrollTop = list.scrollHeight;
+}
+function mentionUser(username){
+  const input = document.getElementById("chatInput");
+  const mention = "@" + username + " ";
+  if(input.value.indexOf(mention) !== 0) input.value = mention + input.value;
+  input.focus();
+}
+async function sendMessage(){
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if(!text) return;
+  if(!STATE.session){ openLoginModal(sendMessage); return; }
+  const program = getCurrentProgram();
+  input.value = "";
+  const { error } = await sb.from("mensagens").insert({ program_id: program ? program.id : null, username: STATE.session.username, type:"text", texto:text });
+  if(error) input.value = text;
+}
+let mediaPickerKind = null;
+let mediaSearchDebounce = null;
+function toggleMediaPicker(kind){
+  const panel = document.getElementById("mediaPicker");
+  if(!panel.classList.contains("hidden") && mediaPickerKind === kind){ panel.classList.add("hidden"); return; }
+  mediaPickerKind = kind;
+  panel.classList.remove("hidden");
+  document.getElementById("mediaSearchInput").value = "";
+  loadMedia("trending", "");
+}
+async function loadMedia(mode, query){
+  const grid = document.getElementById("mediaResults");
+  grid.innerHTML = "<div class=\"media-status\">A carregar...</div>";
+  try{
+    const items = await klipyFetch(mediaPickerKind, mode, query);
+    if(!items.length){ grid.innerHTML = "<div class=\"media-status\">Sem resultados.</div>"; return; }
+    grid.innerHTML = items.map(function(it){
+      const url = extractMediaUrl(it);
+      if(!url) return "";
+      return "<button class=\"media-thumb\" onclick=\"sendMedia('" + url.replace(/'/g,"\\'") + "')\"><img src=\"" + url + "\" loading=\"lazy\"></button>";
+    }).join("");
+  }catch(err){
+    grid.innerHTML = "<div class=\"media-status\">Não consegui ligar à Klipy. Confirma a chave de API.</div>";
+  }
+}
+function onMediaSearchInput(){
+  clearTimeout(mediaSearchDebounce);
+  const val = document.getElementById("mediaSearchInput").value.trim();
+  mediaSearchDebounce = setTimeout(function(){ loadMedia(val ? "search" : "trending", val); }, 500);
+}
+async function sendMedia(url){
+  if(!STATE.session){ openLoginModal(function(){ sendMedia(url); }); return; }
+  const program = getCurrentProgram();
+  document.getElementById("mediaPicker").classList.add("hidden");
+  await sb.from("mensagens").insert({ program_id: program ? program.id : null, username: STATE.session.username, type:"media", media_url:url, media_kind:mediaPickerKind });
+}
+
+function onMicClick(){
+  if(!STATE.session){ openLoginModal(onMicClick); return; }
+  if(!STATE.micUnlocked){ document.getElementById("micLockModal").classList.remove("hidden"); return; }
+  toggleRecording();
+}
+function checkMicCode(){
+  const val = document.getElementById("micCodeInput").value.trim();
+  if(val === MIC_CODE){
+    STATE.micUnlocked = true;
+    localStorage.setItem("tvf_mic_unlocked", "1");
+    document.getElementById("micLockModal").classList.add("hidden");
+    toggleRecording();
+  } else { document.getElementById("micCodeError").textContent = t("chat.wrongCode"); }
+}
+async function toggleRecording(){
+  const btn = document.getElementById("micBtn");
+  if(!recording){
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = function(e){ audioChunks.push(e.data); };
+      mediaRecorder.onstop = function(){
+        const blob = new Blob(audioChunks, { type:"audio/webm" });
+        sendAudioMessage(URL.createObjectURL(blob));
+        stream.getTracks().forEach(function(tr){ tr.stop(); });
+      };
+      mediaRecorder.start();
+      recording = true;
+      btn.classList.add("recording");
+    }catch(err){ alert(t("chat.micDenied")); }
+  } else { mediaRecorder.stop(); recording = false; btn.classList.remove("recording"); }
+}
+async function sendAudioMessage(url){
+  const program = getCurrentProgram();
+  // Nota: este URL é um blob local — só o aparelho que gravou consegue tocá-lo.
+  // TODO: subir para o Supabase Storage para funcionar nos outros aparelhos.
+  await sb.from("mensagens").insert({ program_id: program ? program.id : null, username: STATE.session.username, type:"audio", media_url:url });
+}
+
+function sendSuggestion(){
+  const val = document.getElementById("suggestionInput").value.trim();
+  if(!val) return;
+  window.open(waLink("Sugestão para TV Família: " + val), "_blank");
+  document.getElementById("suggestionInput").value = "";
+}
+
+/* ---------- Autenticação (Supabase RPC) ---------- */
+function openLoginModal(cb){
+  pendingAuthCb = cb || null;
+  document.getElementById("loginUsername").value = "";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginError").textContent = "";
+  document.getElementById("loginModal").classList.remove("hidden");
+}
+async function doLogin(){
+  const uname = document.getElementById("loginUsername").value.trim();
+  const pass = document.getElementById("loginPassword").value;
+  if(!uname || !pass){ document.getElementById("loginError").textContent = t("auth.needPassword"); return; }
+  const { data, error } = await sb.rpc("login_user", { p_username: uname, p_password: pass });
+  if(error || !data || !data.ok){ document.getElementById("loginError").textContent = t("auth.wrongPassword"); return; }
+  finishAuth(data.username);
+}
+async function doRegister(){
+  const uname = document.getElementById("loginUsername").value.trim();
+  const pass = document.getElementById("loginPassword").value;
+  if(!uname || !pass){ document.getElementById("loginError").textContent = t("auth.needPassword"); return; }
+  const { data, error } = await sb.rpc("register_user", { p_username: uname, p_password: pass });
+  if(error || !data || !data.ok){
+    document.getElementById("loginError").textContent = (data && data.error === "taken") ? t("auth.taken") : t("auth.wrongPassword");
+    return;
+  }
+  finishAuth(data.username);
+}
+function finishAuth(uname){
+  STATE.session = { username: uname };
+  localStorage.setItem("tvf_session", JSON.stringify(STATE.session));
+  document.getElementById("loginModal").classList.add("hidden");
+  renderProfile();
+  if(pendingAuthCb){ const cb = pendingAuthCb; pendingAuthCb = null; cb(); }
+}
+function logout(){ STATE.session = null; localStorage.removeItem("tvf_session"); renderProfile(); }
+function renderProfile(){
+  const loggedIn = !!STATE.session;
+  document.getElementById("profileLoggedOut").classList.toggle("hidden", loggedIn);
+  document.getElementById("profileLoggedIn").classList.toggle("hidden", !loggedIn);
+  if(loggedIn) document.getElementById("profileNick").textContent = STATE.session.username;
+}
+
+/* ---------- Admin (Supabase RPC) ---------- */
+async function checkAdminCode(){
+  const val = document.getElementById("adminCodeInput").value;
+  if(val === ADMIN_MASTER_CODE){
+    STATE.adminMode = "master";
+  } else {
+    const { data } = await sb.rpc("check_operator_code", { p_code: val });
+    if(!data){ document.getElementById("adminCodeError").textContent = t("admin.wrong"); return; }
+    STATE.adminMode = "operator";
+  }
+  STATE.adminCode = val;
+  sessionStorage.setItem("tvf_admin_mode", STATE.adminMode);
+  sessionStorage.setItem("tvf_admin_code", val);
+  renderAdminPanel();
+}
+async function renderAdminPanel(){
+  document.getElementById("adminGate").classList.add("hidden");
+  document.getElementById("adminPanel").classList.remove("hidden");
+  document.getElementById("masterOnlySections").classList.toggle("hidden", STATE.adminMode !== "master");
+  renderScheduleList();
+  if(STATE.adminMode === "master"){
+    renderMostWatched();
+    await refreshOperatorCodesList();
+  }
+}
+async function addScheduledVideo(){
+  const videoId = document.getElementById("admVideoId").value.trim();
+  const title = document.getElementById("admVideoTitle").value.trim();
+  const lang = document.getElementById("admVideoLang").value;
+  const startVal = document.getElementById("admVideoStart").value;
+  const durMin = parseFloat(document.getElementById("admVideoDuration").value) || 60;
+  if(!videoId || !startVal) return;
+  await sb.rpc("admin_add_program", { p_code: STATE.adminCode, p_lang: lang, p_video_id: videoId, p_title: title, p_start: new Date(startVal).toISOString(), p_duration_seconds: durMin*60 });
+  document.getElementById("admVideoId").value = ""; document.getElementById("admVideoTitle").value = "";
+  document.getElementById("admVideoStart").value = ""; document.getElementById("admVideoDuration").value = "";
+  await refreshSchedule();
+  renderScheduleList();
+}
+function renderScheduleList(){
+  document.getElementById("scheduleList").innerHTML = schedule.map(function(p){
+    return "<div class=\"sched-item\"><b>" + escapeHtml(p.title || p.videoId) + "</b> · " + p.lang.toUpperCase() +
+      "<div class=\"dim\">" + new Date(p.start).toLocaleString() + " · " + Math.round(p.duration/60) + "min</div>" +
+      "<div class=\"dim\">ID: " + escapeHtml(p.videoId) + "</div>" +
+      "<button class=\"del\" onclick=\"removeScheduled(" + p.id + ")\">" + svgIcon(ICO_TRASH,"ic-sm") + "</button></div>";
+  }).join("");
+}
+async function removeScheduled(id){
+  await sb.rpc("admin_delete_program", { p_code: STATE.adminCode, p_id: id });
+  await refreshSchedule();
+  renderScheduleList();
+}
+function renderMostWatched(){
+  const sorted = schedule.slice().sort(function(a,b){ return b.views - a.views; }).slice(0,5);
+  document.getElementById("mostWatchedList").innerHTML = sorted.length ? sorted.map(function(p){
+    return "<div class=\"mw-item\"><span>" + escapeHtml(p.title || p.videoId) + "</span><span>" + p.views + "</span></div>";
+  }).join("") : "<div class=\"dim\">—</div>";
+}
+async function generateOperatorCode(){
+  const { data } = await sb.rpc("admin_generate_operator_code", { p_admin_code: STATE.adminCode });
+  if(data && data.ok){ await refreshOperatorCodesList(); }
+}
+async function revokeOperatorCode(code){
+  await sb.rpc("admin_revoke_operator_code", { p_admin_code: STATE.adminCode, p_code: code });
+  await refreshOperatorCodesList();
+}
+async function refreshOperatorCodesList(){
+  const { data } = await sb.rpc("admin_list_operator_codes", { p_admin_code: STATE.adminCode });
+  operatorCodesCache = (data && data.codes) ? data.codes.map(function(item){ return { code: item.code || item }; }) : [];
+  renderOperatorCodes();
+}
+function renderOperatorCodes(){
+  document.getElementById("operatorCodesList").innerHTML = operatorCodesCache.length ? operatorCodesCache.map(function(c){
+    return "<div class=\"sched-item\"><b>" + c.code + "</b><button class=\"del\" onclick=\"revokeOperatorCode('" + c.code + "')\">" + svgIcon(ICO_TRASH,"ic-sm") + "</button></div>";
+  }).join("") : "<div class=\"dim\">" + t("admin.noCodes") + "</div>";
+}
+
+function wireEvents(){
+  document.querySelectorAll(".lang-btn").forEach(function(b){ b.addEventListener("click", function(){ selectLanguage(b.dataset.lang); }); });
+  document.querySelectorAll(".continent-btn").forEach(function(b){ b.addEventListener("click", function(){ selectContinent(b.dataset.continent); }); });
+  document.querySelectorAll(".tabbar button").forEach(function(b){ b.addEventListener("click", function(){ showView(b.dataset.view); }); });
+  document.getElementById("adminIconBtn").addEventListener("click", function(){ showView("admin"); });
+
+  document.getElementById("sendBtn").addEventListener("click", sendMessage);
+  document.getElementById("chatInput").addEventListener("keydown", function(e){ if(e.key === "Enter") sendMessage(); });
+  document.getElementById("stickerBtn").addEventListener("click", function(){ toggleMediaPicker("stickers"); });
+  document.getElementById("gifBtn").addEventListener("click", function(){ toggleMediaPicker("gifs"); });
+  document.getElementById("mediaSearchInput").addEventListener("input", onMediaSearchInput);
+  document.getElementById("micBtn").addEventListener("click", onMicClick);
+  document.getElementById("micUnlockBtn").addEventListener("click", checkMicCode);
+  document.getElementById("micWaBtn").addEventListener("click", function(){ window.open(waLink("Olá! Quero desbloquear o áudio na TV Família."), "_blank"); });
+  document.getElementById("micLockClose").addEventListener("click", function(){ document.getElementById("micLockModal").classList.add("hidden"); });
+
+  document.getElementById("openLoginBtn").addEventListener("click", function(){ openLoginModal(null); });
+  document.getElementById("logoutBtn").addEventListener("click", logout);
+  document.getElementById("loginClose").addEventListener("click", function(){ pendingAuthCb = null; document.getElementById("loginModal").classList.add("hidden"); });
+  document.getElementById("loginBtnLogin").addEventListener("click", doLogin);
+  document.getElementById("loginBtnRegister").addEventListener("click", doRegister);
+
+  document.getElementById("adminEnterBtn").addEventListener("click", checkAdminCode);
+  document.getElementById("admSaveBtn").addEventListener("click", addScheduledVideo);
+  document.getElementById("genCodeBtn").addEventListener("click", generateOperatorCode);
+
+  document.getElementById("suggestSendBtn").addEventListener("click", sendSuggestion);
+
+  document.getElementById("donationCta").addEventListener("click", function(){ window.open(waLink("Olá! Quero ajudar a TV Família com uma contribuição."), "_blank"); });
+  document.getElementById("donationClose").addEventListener("click", function(){ document.getElementById("donationModal").classList.add("hidden"); });
+  document.getElementById("donationDismiss").addEventListener("click", function(){ document.getElementById("donationModal").classList.add("hidden"); });
+
+  document.querySelectorAll(".qbtn").forEach(function(b){ b.addEventListener("click", function(){ setQuality(b.dataset.q); }); });
+
+  document.getElementById("changeLangBtn").addEventListener("click", function(){
+    STATE.lang = null;
+    localStorage.removeItem("tvf_lang");
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("onboarding").classList.remove("hidden");
+    document.getElementById("continentGrid").classList.add("hidden");
+    document.getElementById("obSub").textContent = "Escolhe o idioma · Choose language · Choisissez la langue · Elige el idioma";
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  wireEvents();
+  if(STATE.lang){ finishOnboarding(); }
+});
+</script>
+</body>
+</html>
