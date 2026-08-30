@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.TVFamilia" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:statusBarColor">#08090c</item>
+        <item name="android:windowBackground">#08090c</item>
+        <item name="android:navigationBarColor">#08090c</item>
+    </style>
+</resources>
