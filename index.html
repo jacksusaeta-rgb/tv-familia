@@ -121,6 +121,8 @@ h3{ font-size:.85rem; text-transform:uppercase; letter-spacing:1px; color:var(--
 .media-results{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; overflow-y:auto; }
 .media-thumb{ background:var(--void); border:1px solid var(--line); border-radius:var(--radius-sm); padding:0; overflow:hidden; aspect-ratio:1; }
 .media-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.media-thumb.sticker-thumb{ background:var(--panel-2); }
+.media-thumb.sticker-thumb img{ object-fit:contain; }
 .media-status{ grid-column:1/-1; text-align:center; padding:16px; color:var(--chrome-2); font-size:.82rem; }
 
 /* profile */
@@ -689,7 +691,8 @@ async function loadMedia(mode, query){
     grid.innerHTML = items.map(function(it){
       const url = extractMediaUrl(it);
       if(!url) return "";
-      return "<button class=\"media-thumb\" onclick=\"sendMedia('" + url.replace(/'/g,"\\'") + "')\"><img src=\"" + url + "\" loading=\"lazy\"></button>";
+      const cls = mediaPickerKind === "stickers" ? "media-thumb sticker-thumb" : "media-thumb";
+      return "<button class=\"" + cls + "\" onclick=\"sendMedia('" + url.replace(/'/g,"\\'") + "')\"><img src=\"" + url + "\" loading=\"lazy\"></button>";
     }).join("");
   }catch(err){
     grid.innerHTML = "<div class=\"media-status\" style=\"font-size:.66rem;word-break:break-all;text-align:left;line-height:1.4;\">DEBUG: " + escapeHtml(err.debug || err.message) + "</div>";
