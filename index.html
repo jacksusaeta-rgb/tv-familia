@@ -118,8 +118,8 @@ h3{ font-size:.85rem; text-transform:uppercase; letter-spacing:1px; color:var(--
 #stickerBtn{ color:var(--signal); border-radius:10px; width:auto; padding:0 10px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:.7rem; letter-spacing:.5px; }
 .media-picker{ flex-shrink:0; background:var(--panel); border-top:1px solid var(--line); padding:10px 12px; max-height:230px; display:flex; flex-direction:column; gap:8px; }
 .media-picker input{ margin:0; border-radius:999px; }
-.media-results{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; overflow-y:auto; }
-.media-thumb{ background:var(--void); border:1px solid var(--line); border-radius:var(--radius-sm); padding:0; overflow:hidden; aspect-ratio:1; }
+.media-results{ display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px; overflow-y:auto; min-height:0; }
+.media-thumb{ background:var(--void); border:1px solid var(--line); border-radius:var(--radius-sm); padding:0; overflow:hidden; width:calc(33.333% - 4px); flex-shrink:0; aspect-ratio:1; }
 .media-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 .media-thumb.sticker-thumb{ background:var(--panel-2); }
 .media-thumb.sticker-thumb img{ object-fit:contain; }
